@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<title>ContaQuadrados: O jogo da malha</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Inter:wght@400;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* Cores base */
+    --primary-blue: #007bff;
+    --dark-blue: #004085;
+    --light-blue: #cce5ff;
+    --red-error: #dc3545;
+    --green-success: #28a745;
+    --text-dark: #222;
+    --text-medium: #555;
+    --text-light: #444;
+    --bg-light: #f0f2f5;
+    --bg-white: #ffffff;
+    --border-light: #ccc;
+    --shadow-light: rgba(0, 0, 0, 0.08);
+    --shadow-medium: rgba(0, 0, 0, 0.15);
+    --shadow-inset: rgba(0, 0, 0, 0.25);
+
+    /* Gradientes */
+    --gradient-body: linear-gradient(135deg, #e0e7ff 0%, #a7c4fd 100%);
+    --gradient-button-selected: linear-gradient(45deg, #007bff, #0056b3);
+    --gradient-button-hover: linear-gradient(45deg, #e0e7ff, #cce5ff);
+    --gradient-red: linear-gradient(45deg, #dc3545, #c82333);
+    --gradient-green: linear-gradient(45deg, #28a745, #218838);
+    --gradient-progress: linear-gradient(90deg, #007bff, #00c6ff);
+    --gradient-counter-bar: linear-gradient(90deg, var(--primary-blue), #6dd5ed);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif; /* Fonte mais moderna */
+    margin: 0; /* Remove margem padrão */
+    padding: 20px;
+    background: var(--gradient-body); /* Gradiente no fundo */
+    color: var(--text-dark);
+    display: flex;
+    flex-wrap: wrap; /* Permite quebrar linha */
+    justify-content: center;
+    gap: 30px; /* Espaçamento entre os contêineres */
+    min-height: 100vh; /* Ocupa a altura total da tela */
+    align-items: flex-start; /* Alinha no topo, mas ainda centraliza horizontalmente */
+  }
+
+  /* Estilos base para todos os contêineres principais */
+  #headerContainer, #containerJogo, #contadores, #dicasContainer {
+    background: rgba(255, 255, 255, 0.85); /* Fundo semi-transparente */
+    border-radius: 16px; /* Bordas mais arredondadas */
+    padding: 30px; /* Padding maior */
+    box-shadow: 0 8px 30px var(--shadow-medium); /* Sombra mais suave e proeminente */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    backdrop-filter: blur(10px); /* Efeito de vidro fosco */
+    border: 1px solid rgba(255, 255, 255, 0.3); /* Borda sutil */
+  }
+
+  #headerContainer {
+    width: 100%; /* Ocupa toda a largura disponível */
+    max-width: calc(100% - 40px); /* Largura total menos o padding do body */
+    margin-bottom: 30px; /* Espaçamento entre o cabeçalho e o conteúdo abaixo */
+    padding: 20px 30px; /* Ajuste o padding para o título */
+  }
+
+  #headerContainer p { /* Estilo para o subtítulo */
+    font-size: 1.1em; /* Tamanho da fonte menor */
+    color: var(--text-medium); /* Cor mais suave */
+    margin-top: 10px; /* Espaço entre título e subtítulo */
+    line-height: 1.5;
+    text-align: center;
+    max-width: 600px; /* Limita a largura para melhor leitura */
+  }
+
+  #containerJogo {
+    max-width: 580px; /* Aumenta a largura máxima */
+    flex: 2 1 500px; /* Permite crescer mais e ter uma base maior */
+  }
+
+  #contadores {
+    width: 100%; /* Ocupa a largura total do seu pai #contadoresGroup */
+    max-width: none; /* Remove max-width específico para se adaptar ao pai */
+    min-width: 0; /* Permite encolher se necessário */
+    padding-bottom: 0; /* Remove padding inferior para que a barra de dica não tenha muito espaço */
+  }
+  
+  /* Agrupa contadores e dicas na lateral */
+  #contadoresGroup {
+    display: flex;
+    flex-direction: column; /* Coloca contadores e dicas em coluna */
+    gap: 30px; /* Espaço entre contadores e dicas */
+    flex: 1 1 350px; /* Faz o grupo se comportar como uma barra lateral */
+    min-width: 320px; /* Largura mínima para o grupo */
+    max-width: 450px; /* Largura máxima para o grupo */
+  }
+
+  #dicasContainer {
+    margin-top: 0; /* Remove qualquer margem superior para aninhar */
+    padding: 25px;
+    text-align: center;
+    width: 100%; /* Ocupa a largura total do seu pai (#contadoresGroup) */
+  }
+
+  #dicasContainer h3 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2em;
+    color: var(--primary-blue);
+    margin-bottom: 15px;
+    text-shadow: 1px 1px 3px rgba(0,123,255,0.2);
+  }
+
+  #dicasContainer p {
+    font-size: 1.1em;
+    line-height: 1.6;
+    color: var(--text-medium);
+  }
+
+  h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 3.2em; /* Tamanho maior */
+    margin-bottom: 0; /* Remove margem inferior do h1 dentro do headerContainer */
+    text-align: center;
+    /* Gradiente no texto */
+    background-image: linear-gradient(45deg, #007bff, #00c6ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 3px 3px 8px rgba(0, 123, 255, 0.5); /* Sombra mais vibrante */
+    letter-spacing: 1px; /* Espaçamento entre letras */
+  }
+
+  #faseInfo {
+    font-weight: 800; /* Mais negrito */
+    margin-bottom: 20px;
+    font-size: 1.4em; /* Tamanho maior */
+    color: var(--text-dark);
+    text-transform: uppercase; /* Texto em maiúsculas */
+  }
+
+  #tamanhoButtons {
+    display: flex;
+    gap: 10px; /* Aumenta o espaçamento entre botões */
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btnTamanho {
+    padding: 10px 20px;
+    border: none; /* Remove borda sólida */
+    background: var(--bg-white);
+    border-radius: 20px; /* Mais arredondado (pill shape) */
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--text-medium);
+    transition: all 0.3s ease;
+    user-select: none;
+    box-shadow: 0 4px 8px var(--shadow-light); /* Sombra mais suave */
+    border: 2px solid var(--border-light); /* Borda sutil */
+  }
+
+  .btnTamanho.selected {
+    background: var(--gradient-button-selected); /* Gradiente para selecionado */
+    color: var(--bg-white); /* Texto branco */
+    border-color: transparent; /* Remove borda do gradiente */
+    box-shadow: 0 6px 15px rgba(0, 123, 255, 0.4); /* Sombra mais intensa e colorida */
+    transform: translateY(-2px); /* Pequeno levantamento */
+  }
+
+  .btnTamanho:hover:not(.selected) {
+    background: var(--gradient-button-hover); /* Gradiente ao passar o mouse */
+    border-color: var(--primary-blue); /* Borda colorida */
+    color: var(--primary-blue);
+    transform: translateY(-1px);
+  }
+
+  canvas {
+    border: 4px solid var(--text-dark); /* Borda mais espessa e escura */
+    border-radius: 12px; /* Mais arredondado */
+    cursor: crosshair;
+    max-width: 100%;
+    height: auto;
+    background: var(--bg-white);
+    box-shadow: inset 0 0 10px #bbb; /* Sombra interna sutil */
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+
+  canvas.flash {
+    animation: flashAnim 0.3s ease forwards;
+  }
+
+  @keyframes flashAnim {
+    0% { box-shadow: 0 0 20px 8px rgba(0, 198, 255, 0.7); border-color: #00c6ff; } /* Cor de flash mais viva */
+    100% { box-shadow: inset 0 0 10px #bbb; border-color: var(--text-dark); }
+  }
+
+  #painel {
+    margin-top: 25px;
+    width: 100%;
+    text-align: center;
+  }
+
+  #marcados, #cronometro, #pontuacao {
+    font-size: 1.3em; /* Maiores e mais visíveis */
+    font-weight: 800;
+    color: var(--primary-blue);
+    margin-top: 15px; /* Espaçamento ajustado */
+    display: block; /* Garante que ocupem a linha toda para espaçamento */
+  }
+  #cronometro, #pontuacao {
+    margin-top: 10px;
+    color: var(--text-dark); /* Cor mais neutra */
+  }
+
+  #barraProgressoContainer {
+    background: #e9ecef;
+    border-radius: 18px; /* Mais arredondado */
+    height: 25px; /* Altura maior */
+    overflow: hidden;
+    margin-top: 20px; /* Espaçamento maior */
+    margin-bottom: 20px;
+    box-shadow: inset 0 2px 8px var(--shadow-inset); /* Sombra interna mais forte */
+  }
+
+  #barraProgresso {
+    background: var(--gradient-progress); /* Gradiente na barra de progresso */
+    height: 100%;
+    width: 0%;
+    border-radius: 18px; /* Mantém o arredondamento */
+    transition: width 0.4s ease;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.6); /* Sombra na barra */
+  }
+
+  #feedbackFaltam {
+    font-weight: 700;
+    font-size: 1.1em;
+    color: var(--text-medium);
+    margin-top: 12px;
+    min-height: 1.5em;
+  }
+
+  #btnLimpar, #btnAvancar {
+    margin: 15px 10px 0 10px; /* Espaçamento ajustado */
+    padding: 14px 30px; /* Padding maior */
+    font-weight: 800;
+    font-size: 1.1em; /* Tamanho da fonte maior */
+    border: none;
+    border-radius: 30px; /* Muito arredondado */
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s ease; /* Transição para todas as propriedades */
+    box-shadow: 0 6px 15px var(--shadow-medium); /* Sombra mais forte */
+  }
+
+  #btnLimpar {
+    background: var(--gradient-red); /* Gradiente vermelho */
+    color: white;
+  }
+  #btnLimpar:hover {
+    transform: translateY(-3px) scale(1.02); /* Efeito de elevação */
+    box-shadow: 0 8px 20px rgba(220, 53, 69, 0.5);
+  }
+
+  #btnAvancar {
+    background: var(--gradient-green); /* Gradiente verde */
+    color: white;
+    display: none; /* Mantido como none por JS */
+    margin-top: 25px; /* Mais espaço antes de avançar */
+  }
+  #btnAvancar:hover {
+    transform: translateY(-3px) scale(1.02); /* Efeito de elevação */
+    box-shadow: 0 8px 20px rgba(40, 167, 69, 0.5);
+  }
+
+  #contadores h3 {
+    margin-top: 0;
+    margin-bottom: 25px;
+    color: var(--text-dark);
+    font-weight: 800;
+    text-align: center;
+    font-size: 1.5em;
+    letter-spacing: 0.5px;
+  }
+
+  .contador-item {
+    margin-bottom: 18px; /* Mais espaçamento */
+    padding: 12px 18px; /* Padding vertical ajustado para a altura da barra */
+    padding-left: 25px; /* Mais padding para a esquerda para acomodar a barra maior */
+    padding-right: 25px; /* Mais padding para a direita */
+    border-radius: 12px; /* Mais arredondado */
+    background: var(--bg-light); /* Fundo mais claro para os itens */
+    font-weight: 700;
+    font-size: 1.1em; /* Tamanho da fonte maior */
+    display: flex;
+    flex-direction: column;
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.1); /* Sombra interna sutil */
+    transition: transform 0.2s ease;
+    width: 100%; /* Ocupa 100% do pai */
+  }
+  .contador-item:hover {
+    transform: translateY(-2px); /* Pequeno efeito ao passar o mouse */
+  }
+
+  .barra-externa {
+    background: #e0e0e0;
+    border-radius: 10px; /* Mais arredondado */
+    height: 20px; /* Altura original restaurada */
+    width: 250px; /* **COMPRIMENTO 5X MAIOR (250px)** */
+    margin-top: 8px; /* Mantém a margem original */
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px var(--shadow-inset); /* Sombra interna */
+  }
+
+  .barra-interna {
+    height: 100%;
+    border-radius: 10px;
+    width: 0%;
+    transition: width 0.4s ease, background-color 0.4s ease; /* Transição para cor também */
+    background: var(--gradient-counter-bar); /* Gradiente na barra interna */
+  }
+
+  .contador-texto {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-dark);
+    width: 100%; /* Garante que o texto ocupe toda a largura disponível */
+  }
+  .contador-texto span {
+    font-weight: 900; /* Contador mais negrito */
+    color: var(--primary-blue);
+  }
+
+  #mensagemAnotacao {
+    margin-top: 25px; /* Mais espaçamento */
+    font-style: italic;
+    color: var(--text-medium);
+    font-size: 1em; /* Levemente maior */
+    text-align: center;
+    line-height: 1.4;
+    border-top: 1px dashed var(--border-light); /* Linha tracejada */
+    padding-top: 20px;
+  }
+
+  /* Responsividade básica */
+  @media (max-width: 992px) { /* Ajusta breakpoint para mobile */
+    body {
+      flex-direction: column;
+      gap: 25px;
+      padding: 15px;
+      align-items: center; /* Centraliza tudo em coluna */
+    }
+    #headerContainer {
+        max-width: 95%; /* Ajusta para mobile */
+        margin-bottom: 25px;
+    }
+    #headerContainer p { /* Ajusta subtítulo para mobile */
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+    #containerJogo {
+      padding: 20px;
+      max-width: 95%; /* Ocupa quase toda a largura em telas menores */
+      flex: 1 1 auto; /* Permite que o item ocupe o espaço necessário em coluna */
+    }
+    #contadoresGroup { /* O grupo também ocupa a largura total */
+        max-width: 95%;
+        flex: 1 1 auto;
+    }
+    #contadores, #dicasContainer {
+      padding: 20px;
+      max-width: 100%; /* Contêineres internos ocupam a largura total do grupo */
+      flex: 1 1 auto;
+    }
+    h1 {
+      font-size: 2.2em;
+    }
+    #faseInfo {
+      font-size: 1.1em;
+    }
+    .btnTamanho {
+      padding: 8px 15px;
+      font-size: 0.9em;
+    }
+    #btnLimpar, #btnAvancar {
+      padding: 10px 20px;
+      font-size: 0.95em;
+    }
+    /* Ajustes específicos para as barras em mobile para evitar overflow */
+    .barra-externa {
+        width: 100%; /* Em mobile, volta a ocupar 100% do espaço disponível */
+        height: 20px; /* Mantém a altura original para mobile */
+    }
+    .contador-item {
+        padding-left: 18px; /* Ajusta padding para telas menores */
+        padding-right: 18px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="headerContainer">
+  <h1>ContaQuadrados: O jogo da malha</h1>
+  <p>Desafie sua mente a encontrar todos os quadrados escondidos em cada malha! Selecione o tamanho do quadrado, clique para marcar e descubra os padrões da matemática.</p>
+</div>
+
+<div id="containerJogo" role="main" aria-label="Jogo interativo de contagem de quadrados">
+  <p id="faseInfo" aria-live="polite">Fase: 2x2</p>
+
+  <div id="tamanhoButtons" role="radiogroup" aria-label="Seleção do tamanho do quadrado"></div>
+
+  <canvas id="malha" width="400" height="400" aria-label="Malha quadriculada interativa"></canvas>
+
+  <div id="painel">
+    <p>Quadrados marcados: <span id="marcados" aria-live="polite">0</span></p>
+    <div id="barraProgressoContainer" aria-label="Barra de progresso da fase">
+      <div id="barraProgresso"></div>
+    </div>
+    <div id="feedbackFaltam" aria-live="polite"></div>
+    <button id="btnLimpar" aria-label="Limpar marcações da fase">Limpar</button>
+    <button id="btnAvancar" aria-label="Avançar para próxima fase">Avançar Fase</button>
+    <p id="cronometro" aria-live="polite">Tempo: 00:00</p>
+    <p id="pontuacao" aria-live="polite">Pontuação: 0</p>
+  </div>
+</div>
+
+<div id="contadoresGroup">
+  <div id="contadores" aria-live="polite">
+    <h3>Contagem por tamanho</h3>
+    <div id="contadoresItens"></div>
+    <div id="mensagemAnotacao">
+      Anote em seu caderno a quantidade de quadrados contados de cada tamanho.
+    </div>
+  </div>
+
+  <div id="dicasContainer" aria-live="polite">
+    <h3>Dica da Fase!</h3>
+    <p id="dicaTexto">Bem-vindo! Nesta fase, observe bem como os quadrados se formam. Comece pelos menores!</p>
+  </div>
+</div>
+
+
+<script>
+  // Referências aos elementos do DOM
+  const canvas = document.getElementById('malha');
+  const ctx = canvas.getContext('2d');
+  const faseInfo = document.getElementById('faseInfo');
+  const tamanhoButtonsContainer = document.getElementById('tamanhoButtons');
+  const marcadosSpan = document.getElementById('marcados');
+  const barraProgresso = document.getElementById('barraProgresso');
+  const feedbackFaltam = document.getElementById('feedbackFaltam');
+  const contadoresItens = document.getElementById('contadoresItens');
+  const btnLimpar = document.getElementById('btnLimpar');
+  const btnAvancar = document.getElementById('btnAvancar');
+  const cronometroDisplay = document.getElementById('cronometro');
+  const pontuacaoDisplay = document.getElementById('pontuacao');
+  const dicaTextoDisplay = document.getElementById('dicaTexto'); // Novo elemento para a dica
+
+  // Variáveis de estado do jogo
+  let fase = 2; // Fase inicial (2x2 malha)
+  const maxFase = 10; // Fase máxima (10x10 malha)
+  let tamanhoQuadradoSelecionado = 1; // Tamanho do quadrado que o usuário está marcando
+  let jogoAtivo = true; // Indica se o jogo está em andamento (permite marcações)
+
+  let tempoDecorrido = 0; // Tempo em segundos
+  let timerInterval = null; // ID do intervalo do cronômetro
+  let pontuacaoTotal = 0; // Pontuação acumulada do jogador
+
+  // Armazena os IDs dos quadrados marcados, agrupados por tamanho (e.g., Map<tamanho, Set<id>>)
+  const marcadosPorTamanho = new Map();
+  let ultimoQuadradoId = null; // ID do último quadrado marcado/desmarcado, para destaque
+
+  // Cores para preenchimento dos quadrados e bordas
+  const coresPreenchimento = [
+    'rgba(54, 162, 235, 0.7)',     // Azul vibrante
+    'rgba(255, 99, 132, 0.7)',     // Vermelho vibrante
+    'rgba(75, 192, 192, 0.7)',     // Verde vibrante
+    'rgba(153, 102, 255, 0.7)',    // Roxo vibrante
+    'rgba(255, 206, 86, 0.7)',     // Amarelo vibrante
+    'rgba(255, 159, 64, 0.7)',     // Laranja vibrante
+    'rgba(100, 149, 237, 0.7)',    // Azul claro vibrante
+    'rgba(199, 21, 133, 0.7)',     // Rosa vibrante
+    'rgba(60, 179, 113, 0.7)',     // Verde médio vibrante
+    'rgba(255, 140, 0, 0.7)'       // Laranja escuro vibrante
+  ];
+
+  const coresBorda = [
+    '#3662eb',
+    '#ff6384',
+    '#4bc0c0',
+    '#9966ff',
+    '#ffce56',
+    '#ff9f40',
+    '#6495ed',
+    '#c71585',
+    '#3cb371',
+    '#ff8c00'
+  ];
+
+  // Dicas para cada fase, para alunos do 6º ano
+  const dicasFase = {
+      2: "Para uma malha 2x2: Quantos quadrados pequenos (1x1) você vê? E quantos quadrados grandes (2x2)? Somar tudo é o segredo!",
+      3: "Em uma malha 3x3, comece contando os menores (1x1). Depois, agrupe 4 desses para formar 2x2. E o quadrado grande (3x3)? Veja quantos de cada tipo você consegue encontrar.",
+      4: "Na malha 4x4, perceba que a quantidade de quadrados de cada tamanho diminui à medida que o tamanho do quadrado aumenta. Você notou um padrão nos números? Tente pensar em como eles se encaixam!",
+      5: "Fase 5x5! Agora a malha é maior. Pense em como contar os quadrados de 1x1, 2x2, 3x3... existe uma relação entre o número de quadrados e o lado da malha? Uma pista: subtração e multiplicação podem ajudar.",
+      6: "Para cada tamanho de quadrado (1x1, 2x2, 3x3, etc.), imagine quantos 'cantos superiores esquerdos' você pode posicionar. Essa é uma forma de visualizar a quantidade total de cada tipo de quadrado.",
+      7: "Você consegue ver que o número de quadrados de um certo tamanho (por exemplo, 2x2) é o quadrado de um número? Pense no 'espaço' que eles ocupam dentro da malha grande.",
+      8: "Ao invés de contar um por um, para os quadrados 1x1 em uma malha 8x8, quantos você teria? E para os 2x2, quantos? Tente achar uma 'fórmula' que funcione para todos os tamanhos, usando o tamanho da malha e o tamanho do quadrado.",
+      9: "Os quadrados maiores são formados por muitos quadrados menores. Se você tem uma malha N x N e quer contar quadrados de tamanho S x S, qual seria a dimensão da 'área' onde esses quadrados S x S podem começar?",
+      10: "Chegando na fase 10x10! Para cada tamanho de quadrado (S), o número de vezes que ele 'cabe' horizontalmente é (N - S + 1). O mesmo vale para a vertical. O que acontece se você multiplicar esses dois números?",
+      "final": "Uau! Você desvendou todos os segredos dos quadrados! Continue explorando os padrões na matemática, eles estão por toda parte!"
+  };
+
+  /**
+   * Cria e renderiza os botões de seleção de tamanho do quadrado.
+   */
+  function criarBotoesTamanho() {
+    tamanhoButtonsContainer.innerHTML = ''; // Limpa botões existentes
+    for(let i = 1; i <= fase; i++) {
+      const btn = document.createElement('button');
+      btn.classList.add('btnTamanho');
+      btn.textContent = `${i}x${i}`;
+      btn.style.borderColor = coresBorda[i - 1]; // Aplica cor da borda
+      btn.dataset.tamanho = i; // Armazena o tamanho no dataset
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', i === tamanhoQuadradoSelecionado ? 'true' : 'false');
+
+      if(i === tamanhoQuadradoSelecionado) {
+        btn.classList.add('selected'); // Marca como selecionado
+      }
+
+      btn.addEventListener('click', () => {
+        if(!jogoAtivo) return; // Não permite seleção se o jogo não estiver ativo
+        tamanhoQuadradoSelecionado = i;
+        atualizarSelecaoBotao(); // Atualiza o estado visual dos botões
+      });
+      tamanhoButtonsContainer.appendChild(btn);
+    }
+  }
+
+  /**
+   * Atualiza a classe 'selected' e o atributo 'aria-checked' dos botões de tamanho.
+   */
+  function atualizarSelecaoBotao() {
+    document.querySelectorAll('.btnTamanho').forEach(btn => {
+      const isSelected = Number(btn.dataset.tamanho) === tamanhoQuadradoSelecionado;
+      btn.classList.toggle('selected', isSelected);
+      btn.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+    });
+  }
+
+  /**
+   * Desenha a malha quadriculada e os quadrados marcados no canvas.
+   * As linhas da grade são desenhadas por último para garantir que fiquem visíveis.
+   */
+  function desenharMalha() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpa o canvas
+    const tamanhoCelulca = canvas.width / fase; // Tamanho de cada célula na malha
+
+    // Desenha os quadrados marcados primeiro
+    marcadosPorTamanho.forEach((setIds, size) => {
+      setIds.forEach(id => {
+        const [x, y, s] = id.split(',').map(Number); // Posição e tamanho do quadrado
+        const xPx = x * tamanhoCelulca;
+        const yPx = y * tamanhoCelulca;
+        const sizePx = s * tamanhoCelulca;
+
+        // Define estilo de acordo com o último quadrado clicado ou padrão
+        if(id === ultimoQuadradoId) {
+          ctx.fillStyle = 'rgba(255, 165, 0, 0.7)'; // laranja vibrante
+          ctx.strokeStyle = '#ff8c00'; // borda laranja escura
+          ctx.lineWidth = 4;
+        } else {
+          ctx.fillStyle = coresPreenchimento[size - 1] || 'rgba(0,0,0,0.5)';
+          ctx.strokeStyle = coresBorda[size - 1] || '#000';
+          ctx.lineWidth = 3;
+        }
+
+        ctx.fillRect(xPx, yPx, sizePx, sizePx);
+        // strokeRect desenha a borda por fora, então ajustamos a posição para que ela não se "coma"
+        ctx.strokeRect(xPx + ctx.lineWidth / 2, yPx + ctx.lineWidth / 2, sizePx - ctx.lineWidth, sizePx - ctx.lineWidth);
+
+        // Reset da sombra para não afetar outros elementos (se tiver sido ativada)
+        ctx.shadowColor = 'transparent';
+      });
+    });
+
+    // Desenha a grade principal por último para garantir que as linhas fiquem sobre os quadrados
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 1; // Espessura da linha da grade
+    for(let i = 0; i <= fase; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * tamanhoCelulca, 0);
+      ctx.lineTo(i * tamanhoCelulca, canvas.height);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, i * tamanhoCelulca);
+      ctx.lineTo(canvas.width, i * tamanhoCelulca);
+      ctx.stroke();
+    }
+  }
+
+  /**
+   * Calcula o número total de quadrados de um dado tamanho em uma malha.
+   * @param {number} tamanhoMalha - O tamanho N da malha (N x N).
+   * @param {number} tamanhoQuadrado - O tamanho do quadrado a ser contado (e.g., 1 para 1x1, 2 para 2x2).
+   * @returns {number} O número total de quadrados possíveis desse tamanho.
+   */
+  function calcularTotalQuadradosPorTamanho(tamanhoMalha, tamanhoQuadrado) {
+    return (tamanhoMalha - tamanhoQuadrado + 1) ** 2;
+  }
+
+  /**
+   * Calcula o número total de quadrados que podem existir em uma dada fase (malha N x N),
+   * somando todos os tamanhos possíveis (1x1, 2x2, ..., NxN).
+   * @param {number} tamanhoFase - O tamanho N da malha.
+   * @returns {number} O total de quadrados de todos os tamanhos na fase.
+   */
+  function getTotalQuadradosNaFase(tamanhoFase) {
+    let total = 0;
+    for (let i = 1; i <= tamanhoFase; i++) {
+      total += calcularTotalQuadradosPorTamanho(tamanhoFase, i);
+    }
+    return total;
+  }
+
+  /**
+   * Conta o total de quadrados que foram marcados pelo usuário.
+   * @returns {number} O total de quadrados marcados.
+   */
+  function contarTotalMarcados() {
+    let total = 0;
+    marcadosPorTamanho.forEach(setIds => total += setIds.size);
+    return total;
+  }
+
+  /**
+   * Atualiza a exibição dos contadores de quadrados por tamanho e o feedback de faltantes.
+   */
+  function atualizarContadores() {
+    contadoresItens.innerHTML = '';
+    let totalFaltam = 0;
+
+    for(let i = 1; i <= fase; i++) {
+      const count = marcadosPorTamanho.has(i) ? marcadosPorTamanho.get(i).size : 0;
+      const totalQuadrados = calcularTotalQuadradosPorTamanho(fase, i);
+      const perc = (count / totalQuadrados) * 100;
+      totalFaltam += (totalQuadrados - count); // Soma os quadrados que faltam marcar
+
+      // Cria os elementos HTML para cada contador de tamanho
+      const div = document.createElement('div');
+      div.classList.add('contador-item');
+
+      const textoDiv = document.createElement('div');
+      textoDiv.className = 'contador-texto';
+      textoDiv.textContent = `${i}x${i}`;
+      const spanCount = document.createElement('span');
+      spanCount.textContent = count;
+      textoDiv.appendChild(spanCount);
+
+      const barraExterna = document.createElement('div');
+      barraExterna.className = 'barra-externa';
+      const barraInterna = document.createElement('div');
+      barraInterna.className = 'barra-interna';
+      barraInterna.style.backgroundColor = coresBorda[i - 1] || '#000'; /* Usar cor da borda para barra */
+      barraInterna.style.width = perc + '%';
+
+      barraExterna.appendChild(barraInterna);
+      div.appendChild(textoDiv);
+      div.appendChild(barraExterna);
+
+      contadoresItens.appendChild(div);
+    }
+
+    marcadosSpan.textContent = contarTotalMarcados(); // Atualiza o total de quadrados marcados
+
+    // Atualiza feedback de quadrados faltantes e estado do jogo
+    if(totalFaltam === 0) {
+      feedbackFaltam.textContent = 'Parabéns! Você completou a fase.';
+      btnAvancar.style.display = 'inline-block'; // Mostra botão de avançar
+      jogoAtivo = false; // Desativa marcações
+      pararCronometro();
+      pontuacaoTotal += Math.max(0, 1000 - tempoDecorrido * 10); // Calcula pontuação
+      pontuacaoDisplay.textContent = `Pontuação: ${pontuacaoTotal}`;
+    } else {
+      feedbackFaltam.textContent = `Faltam marcar ${totalFaltam} quadrado${totalFaltam > 1 ? 's' : ''}.`;
+      btnAvancar.style.display = 'none'; // Esconde botão de avançar
+      jogoAtivo = true; // Ativa marcações
+    }
+  }
+
+  /**
+   * Atualiza a barra de progresso geral da fase.
+   */
+  function atualizarBarraProgresso() {
+    const totalQuadradosPossiveis = getTotalQuadradosNaFase(fase);
+    const marcados = contarTotalMarcados();
+    const perc = (marcados / totalQuadradosPossiveis) * 100;
+    barraProgresso.style.width = perc + '%';
+  }
+
+  /**
+   * Limpa todas as marcações do canvas e redefine o estado do jogo para a fase atual.
+   */
+  function limparMarcacoes() {
+    marcadosPorTamanho.clear();
+    ultimoQuadradoId = null;
+    atualizarContadores();
+    atualizarBarraProgresso();
+    desenharMalha();
+    jogoAtivo = true;
+    feedbackFaltam.textContent = ''; // Limpa mensagem de feedback
+  }
+
+  /**
+   * Reinicia o estado da pontuação, tempo e marcações para uma nova fase ou início de jogo.
+   * A pontuação é mantida cumulativa entre as fases.
+   */
+  function resetarEstadoJogo() {
+    marcadosPorTamanho.clear();
+    ultimoQuadradoId = null;
+    // Se a pontuação deve ser zerada a cada fase, descomente a linha abaixo:
+    // pontuacaoTotal = 0; // Depende da regra de negócio: cumulativa ou por fase
+    pontuacaoDisplay.textContent = `Pontuação: ${pontuacaoTotal}`; // Garante que a pontuação seja atualizada visualmente
+    tempoDecorrido = 0;
+    cronometroDisplay.textContent = 'Tempo: 00:00';
+    clearInterval(timerInterval); // Garante que nenhum timer antigo continue rodando
+  }
+
+  /**
+   * Inicia uma nova fase do jogo.
+   */
+  function iniciarFase() {
+    faseInfo.textContent = `Fase: ${fase}x${fase}`;
+    tamanhoQuadradoSelecionado = 1; // Garante que o 1x1 seja sempre o padrão no início da fase
+    criarBotoesTamanho();
+    atualizarSelecaoBotao();
+    limparMarcacoes(); // Limpa as marcações da fase anterior e reativa o jogo
+    iniciarCronometro();
+    atualizarContadores();
+    atualizarBarraProgresso();
+    desenharMalha();
+    // Exibe a dica da fase atual
+    dicaTextoDisplay.textContent = dicasFase[fase] || dicasFase["final"];
+  }
+
+  /**
+   * Inicia ou reinicia o cronômetro do jogo.
+   */
+  function iniciarCronometro() {
+    clearInterval(timerInterval); // Limpa qualquer cronômetro existente
+    tempoDecorrido = 0;
+    cronometroDisplay.textContent = 'Tempo: 00:00';
+    timerInterval = setInterval(() => {
+      tempoDecorrido++;
+      const min = String(Math.floor(tempoDecorrido / 60)).padStart(2, '0');
+      const seg = String(tempoDecorrido % 60).padStart(2, '0');
+      cronometroDisplay.textContent = `Tempo: ${min}:${seg}`;
+    }, 1000);
+  }
+
+  /**
+   * Para o cronômetro do jogo.
+   */
+  function pararCronometro() {
+    clearInterval(timerInterval);
+  }
+
+  // --- Event Listeners ---
+
+  canvas.addEventListener('mousemove', e => {
+    if(!jogoAtivo) {
+      canvas.style.cursor = 'default';
+      return;
+    }
+    const tamanhoCelulca = canvas.width / fase;
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / tamanhoCelulca);
+    const y = Math.floor((e.clientY - rect.top) / tamanhoCelulca);
+    if(x + tamanhoQuadradoSelecionado <= fase && y + tamanhoQuadradoSelecionado <= fase) {
+      canvas.style.cursor = 'pointer';
+    } else {
+      canvas.style.cursor = 'not-allowed';
+    }
+  });
+
+  canvas.addEventListener('click', e => {
+    if(!jogoAtivo) return;
+
+    const tamanhoCelulca = canvas.width / fase;
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / tamanhoCelulca);
+    const y = Math.floor((e.clientY - rect.top) / tamanhoCelulca);
+
+    // Verifica se o clique está dentro dos limites válidos para o tamanho do quadrado selecionado
+    if(x + tamanhoQuadradoSelecionado <= fase && y + tamanhoQuadradoSelecionado <= fase) {
+      const id = `${x},${y},${tamanhoQuadradoSelecionado}`;
+      
+      // Garante que existe um Set para o tamanho atual no Map
+      if(!marcadosPorTamanho.has(tamanhoQuadradoSelecionado)) {
+        marcadosPorTamanho.set(tamanhoQuadradoSelecionado, new Set());
+      }
+      const setAtual = marcadosPorTamanho.get(tamanhoQuadradoSelecionado);
+
+      if(setAtual.has(id)) {
+        // Se já marcado, desmarca
+        setAtual.delete(id);
+        if(ultimoQuadradoId === id) ultimoQuadradoId = null; // Remove destaque se desmarcado
+      } else {
+        // Se não marcado, marca
+        setAtual.add(id);
+        ultimoQuadradoId = id; // Define para destaque
+
+        // Adiciona e remove classe 'flash' para efeito visual
+        canvas.classList.remove('flash');
+        void canvas.offsetWidth; // Força reflow para reiniciar a animação
+        canvas.classList.add('flash');
+      }
+      atualizarContadores();
+      atualizarBarraProgresso();
+      desenharMalha(); // Redesenha para refletir as mudanças
+    }
+  });
+
+  btnLimpar.addEventListener('click', () => {
+    limparMarcacoes();
+    // Reinicia o cronômetro se o jogo não estava completo ou se foi limpado no meio da fase
+    if (!jogoAtivo && getTotalQuadradosNaFase(fase) !== contarTotalMarcados()) {
+      iniciarCronometro();
+    } else if (jogoAtivo) {
+        iniciarCronometro();
+    }
+  });
+
+
+  btnAvancar.addEventListener('click', () => {
+    if(fase < maxFase) {
+      fase++;
+      resetarEstadoJogo(); // Reseta marcações, tempo, etc. (mantém pontuação acumulada por padrão)
+      iniciarFase(); // Inicia a próxima fase
+    } else {
+      // Exibe a dica final e um alerta de conclusão
+      dicaTextoDisplay.textContent = dicasFase["final"];
+      alert(`🎉 Parabéns! Você completou todas as ${maxFase} fases com uma pontuação total de ${pontuacaoTotal}!`);
+      // Opcional: Reiniciar o jogo para a primeira fase após o alerta final, ou mostrar uma tela de "fim de jogo"
+      // fase = 2; // Reinicia a fase para 2x2
+      // pontuacaoTotal = 0; // Zera a pontuação
+      // iniciarFase(); // Recomeça o jogo
+    }
+  });
+
+  // Inicialização do jogo ao carregar a página
+  iniciarFase();
+
+</script>
+
+</body>
+</html>
