@@ -465,7 +465,7 @@
 
   // Variáveis de estado do jogo
   let fase = 2; // Fase inicial (2x2 malha)
-  const maxFase = 10; // Fase máxima (10x10 malha)
+  const maxFase = 7; // reduzido para 7x7 // Fase máxima (10x10 malha)
   let tamanhoQuadradoSelecionado = 1; // Tamanho do quadrado que o usuário está marcando
   let jogoAtivo = true; // Indica se o jogo está em andamento (permite marcações)
 
@@ -849,7 +849,7 @@
     } else {
       // Exibe a dica final e um alerta de conclusão
       dicaTextoDisplay.textContent = dicasFase["final"];
-      alert(`🎉 Parabéns! Você completou todas as ${maxFase} fases com uma pontuação total de ${pontuacaoTotal}!`);
+      document.getElementById("mensagemFinal").style.display = "block";
       // Opcional: Reiniciar o jogo para a primeira fase após o alerta final, ou mostrar uma tela de "fim de jogo"
       // fase = 2; // Reinicia a fase para 2x2
       // pontuacaoTotal = 0; // Zera a pontuação
@@ -862,5 +862,9 @@
 
 </script>
 
+
+<div id="mensagemFinal" style="display:none; text-align:center; padding:30px; background:white; border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,0.15); margin-top:30px; font-size:1.4em; font-weight:700; color:var(--green-success); max-width:600px; margin-left:auto; margin-right:auto;">
+  🎉 Parabéns! Você completou todas as fases do jogo! Sua jornada matemática foi incrível! 👏
+</div>
 </body>
 </html>
